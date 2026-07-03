@@ -24,6 +24,7 @@ The first supported rules include:
 - Inferring common layers such as Domain, Application, Infrastructure, WebApi, and Tests.
 - Detecting invalid layer dependencies.
 - Generating AI-ready rule files.
+- Reading repository-specific rules from `.contextguard/config.json`.
 
 ## Install locally
 
@@ -64,9 +65,65 @@ contextguard validate /path/to/repo
 The `init` command currently generates:
 
 ```text
+.contextguard/config.json
 .contextguard/context.json
 .ai/rules.md
 ```
+
+## Configuration
+
+ContextGuard looks for config in this order:
+
+```text
+contextguard.json
+.contextguard/config.json
+```
+
+Example config:
+
+```json
+{
+  "layer_patterns": {
+    "domain": ["domain"],
+    "application": ["application"],
+    "infrastructure": ["infrastructure", ".infra", "/infra"],
+    "webapi": ["webapi", "endpoint", "endpoints", ".api", "/api"],
+    "tests": ["test", "tests", "spec"]
+  },
+  "forbidden_dependencies": {
+    "domain": ["application", "infrastructure", "webapi", "tests"],
+    "application": ["infrastructure", "webapi", "tests"],
+    "infrastructure": ["webapi", "tests"],
+    "webapi": ["tests"]
+  }
+}
+```
+
+## Test ContextGuard itself
+
+```bash
+python -m pip install -e .
+python -m unittest discover -s tests
+contextguard analyze .
+```
+
+## Test against a .NET repository
+
+```bash
+contextguard analyze D:/Source/MyDotnetRepo
+contextguard init D:/Source/MyDotnetRepo
+contextguard validate D:/Source/MyDotnetRepo
+```
+
+Expected validation behavior:
+
+- Exit code `0` means no architecture violations were detected.
+- Exit code `1` means at least one violation was detected.
+- Exit code `2` means ContextGuard could not read the config.
+
+## MVP plan
+
+The .NET MVP task list is tracked in `docs/MVP_DOTNET.md`.
 
 ## Product vision
 
