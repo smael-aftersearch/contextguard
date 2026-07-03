@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import fnmatch
 import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
-from contextguard.config import ContextGuardConfig, default_config
+from contextguard.config import ContextGuardConfig, SourcePatternRule, default_config
 from contextguard.models import (
     DependencyInfo,
     ProjectInfo,
@@ -165,6 +166,7 @@ def infer_layer(project_name: str, path: Path, config: ContextGuardConfig | None
 
 def _scan_source_patterns(root: Path, projects: list[ProjectInfo], config: ContextGuardConfig) -> list[ViolationInfo]:
     violations: list[ViolationInfo] = []
+    finding_counts: dict[tuple[str, str, str], int] = {}
 
     for project in projects:
         project_dir = (root / project.path).parent
@@ -173,15 +175,25 @@ def _scan_source_patterns(root: Path, projects: list[ProjectInfo], config: Conte
             continue
 
         for source_file in _iter_source_files(project_dir):
+            relative_path = normalize_path(source_file, root)
+            applicable_rules = [rule for rule in matching_rules if _matches_rule_path(relative_path, rule)]
+            if not applicable_rules:
+                continue
+
             try:
                 lines = source_file.read_text(encoding="utf-8", errors="ignore").splitlines()
             except OSError:
                 continue
 
             for line_number, line in enumerate(lines, start=1):
-                for rule in matching_rules:
-                    if rule.pattern in line:
-                        relative_path = normalize_path(source_file, root)
+                for rule in applicable_rules:
+                    count_key = (project.name, rule.rule_id, rule.pattern)
+                    if rule.max_findings_per_project is not None:
+                        if finding_counts.get(count_key, 0) >= rule.max_findings_per_project:
+                            continue
+
+                    if _matches_source_line(line, rule):
+                        finding_counts[count_key] = finding_counts.get(count_key, 0) + 1
                         violations.append(
                             ViolationInfo(
                                 rule_id=rule.rule_id,
@@ -193,6 +205,18 @@ def _scan_source_patterns(root: Path, projects: list[ProjectInfo], config: Conte
                         )
 
     return violations
+
+
+def _matches_rule_path(relative_path: str, rule: SourcePatternRule) -> bool:
+    included = any(fnmatch.fnmatchcase(relative_path, pattern) for pattern in rule.include)
+    excluded = any(fnmatch.fnmatchcase(relative_path, pattern) for pattern in rule.exclude)
+    return included and not excluded
+
+
+def _matches_source_line(line: str, rule: SourcePatternRule) -> bool:
+    if rule.match_type == "regex":
+        return re.search(rule.pattern, line) is not None
+    return rule.pattern in line
 
 
 def _iter_source_files(project_dir: Path):
