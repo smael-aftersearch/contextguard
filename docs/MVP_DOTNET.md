@@ -51,7 +51,7 @@ ContextGuard can infer common layers such as:
 
 The default implementation uses project names and paths. Layer patterns are now configurable through `.contextguard/config.json`.
 
-### 4. Architecture rules
+### 4. Project reference architecture rules
 
 Status: done for basic MVP
 
@@ -64,9 +64,29 @@ Default rules:
 - Infrastructure must not reference WebApi or Tests.
 - WebApi must not reference Tests.
 
-These rules are now configurable through `.contextguard/config.json`.
+These rules are configurable through `.contextguard/config.json`.
 
-### 5. AI context generation
+### 5. Source pattern architecture rules
+
+Status: basic version done
+
+ContextGuard can scan `.cs` source files and report forbidden text patterns per layer.
+
+Default examples:
+
+- Domain must not use `Microsoft.EntityFrameworkCore`.
+- Application must not use `Microsoft.EntityFrameworkCore`.
+- WebApi should avoid direct `DbContext` usage. This is warning-level by default.
+
+Source pattern rules are configured through `forbidden_source_patterns` in `.contextguard/config.json`.
+
+Next steps:
+
+- Add regex matching mode.
+- Add include/exclude path filters.
+- Add Roslyn-based C# analysis in a later version.
+
+### 6. AI context generation
 
 Status: improved basic version done
 
@@ -90,7 +110,7 @@ Next steps:
 - Add project examples.
 - Add generated task guidance for AI agents.
 
-### 6. Validation command
+### 7. Validation command
 
 Status: improved basic version done
 
@@ -104,12 +124,12 @@ Current behavior:
 
 Next steps:
 
-- Add rule IDs and severity levels directly from config.
+- Add rule IDs and severity levels directly from dependency config.
 - Add more warning-only rules.
 
-### 7. Explain command
+### 8. Explain command
 
-Status: basic version done
+Status: improved basic version done
 
 The `explain` command explains detected findings and specific rules.
 
@@ -118,9 +138,10 @@ Examples:
 ```bash
 python -m contextguard explain .
 python -m contextguard explain . --rule layer-dependency
+python -m contextguard explain . --rule forbidden-source-pattern
 ```
 
-### 8. CI integration
+### 9. CI integration
 
 Status: basic generator done
 
@@ -183,8 +204,8 @@ Expected behavior:
 
 ## Current next priorities
 
-1. Add severity levels directly to config rules.
-2. Add source-pattern rules, for example forbidding `DbContext` inside controllers.
+1. Add include/exclude path filters for source pattern rules.
+2. Add regex matching mode for source pattern rules.
 3. Generate Azure Pipelines template support.
 4. Improve `.ai/rules.md` with richer detected conventions.
 5. Add tests for CLI command behavior.
