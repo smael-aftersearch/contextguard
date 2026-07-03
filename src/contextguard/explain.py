@@ -33,6 +33,21 @@ RULE_EXPLANATIONS: dict[str, dict[str, str]] = {
             "After adding the new layer pattern, also define its dependency rules under `forbidden_dependencies`."
         ),
     },
+    "forbidden-source-pattern": {
+        "title": "Forbidden source pattern",
+        "why": (
+            "A source file contains text that is forbidden for its architecture layer. "
+            "This catches cases where project references look valid but code still leaks infrastructure, framework, or integration concerns."
+        ),
+        "fix": (
+            "Move the framework-specific or infrastructure-specific code to the correct outer layer. "
+            "Keep the inner layer focused on abstractions, business rules, and use-case orchestration."
+        ),
+        "config": (
+            "If the source usage is intentional, edit `.contextguard/config.json` and adjust `forbidden_source_patterns` "
+            "by changing the pattern, severity, message, or removing the rule."
+        ),
+    },
 }
 
 
