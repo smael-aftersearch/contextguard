@@ -38,9 +38,9 @@ ContextGuard should read from `.csproj` files:
 
 ### 3. Layer inference
 
-Status: in progress
+Status: done for basic MVP
 
-ContextGuard should infer common layers such as:
+ContextGuard can infer common layers such as:
 
 - Domain
 - Application
@@ -49,13 +49,13 @@ ContextGuard should infer common layers such as:
 - Tests
 - Unknown
 
-Current implementation uses project names and paths. Next step is to make layer patterns configurable.
+The default implementation uses project names and paths. Layer patterns are now configurable through `.contextguard/config.json`.
 
 ### 4. Architecture rules
 
-Status: in progress
+Status: done for basic MVP
 
-ContextGuard should validate layer dependency rules.
+ContextGuard validates layer dependency rules.
 
 Default rules:
 
@@ -64,7 +64,7 @@ Default rules:
 - Infrastructure must not reference WebApi or Tests.
 - WebApi must not reference Tests.
 
-Next step: move these rules into a generated config file so each repository can customize them.
+These rules are now configurable through `.contextguard/config.json`.
 
 ### 5. AI context generation
 
@@ -72,6 +72,7 @@ Status: basic version done
 
 The `init` command currently generates:
 
+- `.contextguard/config.json`
 - `.contextguard/context.json`
 - `.ai/rules.md`
 
@@ -138,11 +139,12 @@ Expected behavior:
 - `init` creates ContextGuard output files.
 - `validate` exits with code `0` when there are no violations.
 - `validate` exits with code `1` when invalid layer dependencies are found.
+- `validate` exits with code `2` when the config cannot be read.
 
 ## Current next priorities
 
-1. Add `.contextguard/config.json` generation.
-2. Use config-driven layer patterns.
-3. Use config-driven forbidden dependencies.
-4. Add tests for custom config behavior.
-5. Improve README with .NET MVP testing instructions.
+1. Add severity levels to rules.
+2. Add warning-only rules.
+3. Add source-pattern rules, for example forbidding `DbContext` inside controllers.
+4. Generate a CI pipeline template for target .NET repositories.
+5. Improve `.ai/rules.md` with richer detected conventions.
