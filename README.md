@@ -34,6 +34,23 @@ cd contextguard
 python -m pip install -e .
 ```
 
+On Windows PowerShell, using a virtual environment is recommended:
+
+```powershell
+py -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e .
+python -m contextguard analyze .
+```
+
+If PowerShell blocks activation, run this command once for the current terminal session:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Then activate the virtual environment again.
+
 ## Usage
 
 Analyze a repository:
@@ -42,22 +59,28 @@ Analyze a repository:
 contextguard analyze /path/to/repo
 ```
 
+If the `contextguard` command is not available in your terminal, use the module form:
+
+```bash
+python -m contextguard analyze /path/to/repo
+```
+
 Print the full report as JSON:
 
 ```bash
-contextguard analyze /path/to/repo --json
+python -m contextguard analyze /path/to/repo --json
 ```
 
 Generate initial ContextGuard files in a repository:
 
 ```bash
-contextguard init /path/to/repo
+python -m contextguard init /path/to/repo
 ```
 
 Validate architecture rules:
 
 ```bash
-contextguard validate /path/to/repo
+python -m contextguard validate /path/to/repo
 ```
 
 ## Generated files
@@ -104,15 +127,15 @@ Example config:
 ```bash
 python -m pip install -e .
 python -m unittest discover -s tests
-contextguard analyze .
+python -m contextguard analyze .
 ```
 
 ## Test against a .NET repository
 
 ```bash
-contextguard analyze D:/Source/MyDotnetRepo
-contextguard init D:/Source/MyDotnetRepo
-contextguard validate D:/Source/MyDotnetRepo
+python -m contextguard analyze D:/Source/MyDotnetRepo
+python -m contextguard init D:/Source/MyDotnetRepo
+python -m contextguard validate D:/Source/MyDotnetRepo
 ```
 
 Expected validation behavior:
