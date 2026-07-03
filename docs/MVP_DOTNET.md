@@ -68,9 +68,18 @@ These rules are configurable through `.contextguard/config.json`.
 
 ### 5. Source pattern architecture rules
 
-Status: basic version done
+Status: improved basic version done
 
 ContextGuard can scan `.cs` source files and report forbidden text patterns per layer.
+
+Current capabilities:
+
+- `contains` matching.
+- `regex` matching.
+- `include` path filters.
+- `exclude` path filters.
+- `max_findings_per_project` for noisy legacy codebases.
+- Error and warning severities.
 
 Default examples:
 
@@ -82,8 +91,7 @@ Source pattern rules are configured through `forbidden_source_patterns` in `.con
 
 Next steps:
 
-- Add regex matching mode.
-- Add include/exclude path filters.
+- Add grouped summary output for repeated findings.
 - Add Roslyn-based C# analysis in a later version.
 
 ### 6. AI context generation
@@ -204,8 +212,8 @@ Expected behavior:
 
 ## Current next priorities
 
-1. Add include/exclude path filters for source pattern rules.
-2. Add regex matching mode for source pattern rules.
-3. Generate Azure Pipelines template support.
-4. Improve `.ai/rules.md` with richer detected conventions.
-5. Add tests for CLI command behavior.
+1. Add grouped summary output for repeated findings.
+2. Generate Azure Pipelines template support.
+3. Improve `.ai/rules.md` with richer detected conventions.
+4. Add tests for CLI command behavior.
+5. Add package publishing workflow.
