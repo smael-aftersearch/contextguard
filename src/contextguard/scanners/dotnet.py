@@ -68,6 +68,8 @@ def scan_dotnet(root: Path, config: ContextGuardConfig | None = None) -> ScanRes
                     )
                 )
 
+    violations.extend(_scan_source_patterns(root, projects, config))
+
     return ScanResult(
         root=root.as_posix(),
         solution_files=[normalize_path(path, root) for path in solution_files],
@@ -116,7 +118,7 @@ def _read_project(path: Path, root: Path, config: ContextGuardConfig) -> Project
     try:
         tree = ET.parse(path)
         xml_root = tree.getroot()
-    except ET.ParseError:
+    except (ET.ParseError, OSError):
         xml_root = None
 
     if xml_root is not None:
@@ -159,6 +161,46 @@ def infer_layer(project_name: str, path: Path, config: ContextGuardConfig | None
             return layer
 
     return "unknown"
+
+
+def _scan_source_patterns(root: Path, projects: list[ProjectInfo], config: ContextGuardConfig) -> list[ViolationInfo]:
+    violations: list[ViolationInfo] = []
+
+    for project in projects:
+        project_dir = (root / project.path).parent
+        matching_rules = [rule for rule in config.forbidden_source_patterns if rule.layer == project.layer]
+        if not matching_rules:
+            continue
+
+        for source_file in _iter_source_files(project_dir):
+            try:
+                lines = source_file.read_text(encoding="utf-8", errors="ignore").splitlines()
+            except OSError:
+                continue
+
+            for line_number, line in enumerate(lines, start=1):
+                for rule in matching_rules:
+                    if rule.pattern in line:
+                        relative_path = normalize_path(source_file, root)
+                        violations.append(
+                            ViolationInfo(
+                                rule_id=rule.rule_id,
+                                source=project.name,
+                                target=f"{relative_path}:{line_number}",
+                                severity=rule.severity,
+                                message=f"{rule.message} Found `{rule.pattern}` in {relative_path}:{line_number}.",
+                            )
+                        )
+
+    return violations
+
+
+def _iter_source_files(project_dir: Path):
+    ignored_parts = {"bin", "obj", ".git", ".vs"}
+    for path in project_dir.rglob("*.cs"):
+        if ignored_parts.intersection({part.lower() for part in path.parts}):
+            continue
+        yield path
 
 
 def _resolve_reference(
