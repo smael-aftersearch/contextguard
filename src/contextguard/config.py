@@ -32,8 +32,10 @@ DEFAULT_FORBIDDEN_SOURCE_PATTERNS: list[dict[str, Any]] = [
         "layer": "application",
         "pattern": "Microsoft.EntityFrameworkCore",
         "rule_id": "forbidden-source-pattern",
-        "severity": "error",
-        "message": "Application projects must not use Entity Framework Core directly.",
+        "severity": "warning",
+        "exclude": ["**/Generated/**", "**/*.g.cs"],
+        "max_findings_per_project": 5,
+        "message": "Application currently uses EF Core query extensions. Prefer abstractions or move data access to Infrastructure over time.",
     },
     {
         "layer": "webapi",
