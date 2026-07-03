@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from contextguard.config import ContextGuardConfig, default_config, load_config
+from contextguard.explain import explain_rule, explain_violation
 from contextguard.scanners.dotnet import scan_dotnet
 
 
@@ -29,6 +30,10 @@ def main(argv: list[str] | None = None) -> int:
     validate_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
     validate_parser.add_argument("--json", action="store_true", help="Print validation report as JSON.")
 
+    explain_parser = subparsers.add_parser("explain", help="Explain findings or a specific rule.")
+    explain_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
+    explain_parser.add_argument("--rule", help="Explain a specific rule id without scanning findings.")
+
     args = parser.parse_args(argv)
 
     try:
@@ -38,6 +43,8 @@ def main(argv: list[str] | None = None) -> int:
             return _init(Path(args.path), force=args.force)
         if args.command == "validate":
             return _validate(Path(args.path), as_json=args.json)
+        if args.command == "explain":
+            return _explain(Path(args.path), rule_id=args.rule)
     except ValueError as exc:
         print(f"ContextGuard error: {exc}")
         return 2
@@ -105,7 +112,29 @@ def _validate(root: Path, as_json: bool) -> int:
         )
         for violation in result.violations:
             print(f"[{violation.severity}] {violation.rule_id}: {violation.message}")
+        print("\nRun `python -m contextguard explain .` for fix guidance.")
     return 1 if result.has_errors else 0
+
+
+def _explain(root: Path, rule_id: str | None) -> int:
+    if rule_id:
+        print(explain_rule(rule_id))
+        return 0
+
+    config = load_config(root)
+    result = scan_dotnet(root, config=config)
+
+    if not result.violations:
+        print("No findings to explain. ContextGuard did not detect architecture findings for this repository.")
+        return 0
+
+    print("ContextGuard explanations")
+    print("=========================")
+    for index, violation in enumerate(result.violations, start=1):
+        if index > 1:
+            print("\n---\n")
+        print(explain_violation(violation))
+    return 0
 
 
 def _print_summary(report: dict, show_deps: bool = False) -> None:
@@ -175,14 +204,26 @@ def _build_ai_rules(report: dict, config: ContextGuardConfig) -> str:
         "2. Do not introduce dependencies from inner layers to outer layers.",
         "3. Prefer existing project conventions over new patterns.",
         "4. Add new files to the layer that matches their responsibility.",
-        "5. Run `contextguard validate` before considering the change complete.",
+        "5. Run `python -m contextguard validate .` before considering the change complete.",
+        "6. Run `python -m contextguard explain .` when ContextGuard reports findings.",
         "",
     ])
+
+    if report["dependencies"]:
+        lines.extend(["## Detected dependencies", ""])
+        for dependency in report["dependencies"]:
+            lines.append(
+                f"- `{dependency['source']}` (`{dependency['source_layer']}`) -> "
+                f"`{dependency['target']}` (`{dependency['target_layer']}`)"
+            )
+        lines.append("")
 
     if report["violations"]:
         lines.extend(["## Current findings", ""])
         for violation in report["violations"]:
             lines.append(f"- `{violation['severity']}` `{violation['rule_id']}`: {violation['message']}")
+        lines.append("")
+        lines.append("Run `python -m contextguard explain .` for explanation and fix guidance.")
         lines.append("")
 
     return "\n".join(lines)
