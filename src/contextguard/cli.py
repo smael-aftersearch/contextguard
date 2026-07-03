@@ -86,7 +86,7 @@ def _init(root: Path, force: bool) -> int:
     print(f"- {context_file.relative_to(root)}")
     print(f"- {rules_file.relative_to(root)}")
     if result.has_violations:
-        print(f"\nDetected {len(result.violations)} violation(s). Run `contextguard validate` for details.")
+        print(f"\nDetected {len(result.violations)} finding(s). Run `contextguard validate` for details.")
     return 0
 
 
@@ -96,22 +96,29 @@ def _validate(root: Path, as_json: bool) -> int:
     if as_json:
         print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
     elif not result.violations:
-        print("ContextGuard validation passed. No architecture violations found.")
+        print("ContextGuard validation passed. No architecture findings found.")
     else:
-        print(f"ContextGuard validation failed: {len(result.violations)} violation(s) found.\n")
+        print(
+            "ContextGuard validation completed: "
+            f"{result.error_count} error(s), {result.warning_count} warning(s).\n"
+        )
         for violation in result.violations:
             print(f"[{violation.severity}] {violation.rule_id}: {violation.message}")
-    return 1 if result.has_violations else 0
+    return 1 if result.has_errors else 0
 
 
 def _print_summary(report: dict) -> None:
+    error_count = len([item for item in report["violations"] if item["severity"] == "error"])
+    warning_count = len([item for item in report["violations"] if item["severity"] == "warning"])
+
     print("ContextGuard analysis")
     print("=====================")
     print(f"Root: {report['root']}")
     print(f"Solutions: {len(report['solution_files'])}")
     print(f"Projects: {len(report['projects'])}")
     print(f"Dependencies: {len(report['dependencies'])}")
-    print(f"Violations: {len(report['violations'])}")
+    print(f"Errors: {error_count}")
+    print(f"Warnings: {warning_count}")
 
     if report["projects"]:
         print("\nProjects:")
@@ -120,9 +127,9 @@ def _print_summary(report: dict) -> None:
             print(f"- {project['name']} [{project['layer']}] ({frameworks})")
 
     if report["violations"]:
-        print("\nViolations:")
+        print("\nFindings:")
         for violation in report["violations"]:
-            print(f"- {violation['message']}")
+            print(f"- [{violation['severity']}] {violation['message']}")
 
 
 def _build_ai_rules(report: dict, config: ContextGuardConfig) -> str:
@@ -164,9 +171,9 @@ def _build_ai_rules(report: dict, config: ContextGuardConfig) -> str:
     ])
 
     if report["violations"]:
-        lines.extend(["## Current violations", ""])
+        lines.extend(["## Current findings", ""])
         for violation in report["violations"]:
-            lines.append(f"- `{violation['rule_id']}`: {violation['message']}")
+            lines.append(f"- `{violation['severity']}` `{violation['rule_id']}`: {violation['message']}")
         lines.append("")
 
     return "\n".join(lines)
