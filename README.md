@@ -11,6 +11,7 @@ ContextGuard will analyze a repository and generate:
 - AI context files that explain the project structure, conventions, and rules.
 - Architecture rules that describe what is allowed and what is forbidden.
 - Validation checks that can run locally or in CI.
+- Explanations for findings, including why they matter and how to fix them.
 - Optional pipeline templates to prevent rule violations from being merged.
 
 ## Initial focus
@@ -23,6 +24,7 @@ The first supported rules include:
 - Reading `.csproj` references and package references.
 - Inferring common layers such as Domain, Application, Infrastructure, WebApi, and Tests.
 - Detecting invalid layer dependencies.
+- Explaining detected findings with practical fix guidance.
 - Generating AI-ready rule files.
 - Reading repository-specific rules from `.contextguard/config.json`.
 
@@ -65,6 +67,12 @@ If the `contextguard` command is not available in your terminal, use the module 
 python -m contextguard analyze /path/to/repo
 ```
 
+Show project dependencies in the text report:
+
+```bash
+python -m contextguard analyze /path/to/repo --show-deps
+```
+
 Print the full report as JSON:
 
 ```bash
@@ -83,6 +91,18 @@ Validate architecture rules:
 python -m contextguard validate /path/to/repo
 ```
 
+Explain detected findings:
+
+```bash
+python -m contextguard explain /path/to/repo
+```
+
+Explain a specific rule:
+
+```bash
+python -m contextguard explain . --rule layer-dependency
+```
+
 ## Generated files
 
 The `init` command currently generates:
@@ -92,6 +112,8 @@ The `init` command currently generates:
 .contextguard/context.json
 .ai/rules.md
 ```
+
+The generated `.ai/rules.md` includes detected projects, architecture rules, detected dependencies, current findings, and development instructions for AI-assisted coding.
 
 ## Configuration
 
@@ -133,16 +155,22 @@ python -m contextguard analyze .
 ## Test against a .NET repository
 
 ```bash
-python -m contextguard analyze D:/Source/MyDotnetRepo
+python -m contextguard analyze D:/Source/MyDotnetRepo --show-deps
 python -m contextguard init D:/Source/MyDotnetRepo
 python -m contextguard validate D:/Source/MyDotnetRepo
+python -m contextguard explain D:/Source/MyDotnetRepo
 ```
 
 Expected validation behavior:
 
-- Exit code `0` means no architecture violations were detected.
-- Exit code `1` means at least one violation was detected.
+- Exit code `0` means no error-level architecture violations were detected.
+- Exit code `1` means at least one error-level violation was detected.
 - Exit code `2` means ContextGuard could not read the config.
+- Warning-level findings do not fail validation.
+
+## Real example
+
+The first real tested finding is documented in `docs/ACTIVITYGATE_EXAMPLE.md`.
 
 ## MVP plan
 
