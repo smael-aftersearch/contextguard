@@ -7,6 +7,7 @@ from pathlib import Path
 
 from contextguard.config import ContextGuardConfig, default_config, load_config
 from contextguard.explain import explain_rule, explain_violation
+from contextguard.generators.ci import generate_github_actions_workflow
 from contextguard.scanners.dotnet import scan_dotnet
 
 
@@ -34,6 +35,10 @@ def main(argv: list[str] | None = None) -> int:
     explain_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
     explain_parser.add_argument("--rule", help="Explain a specific rule id without scanning findings.")
 
+    ci_parser = subparsers.add_parser("generate-ci", help="Generate a GitHub Actions workflow for ContextGuard.")
+    ci_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
+    ci_parser.add_argument("--force", action="store_true", help="Overwrite the workflow if it already exists.")
+
     args = parser.parse_args(argv)
 
     try:
@@ -45,6 +50,8 @@ def main(argv: list[str] | None = None) -> int:
             return _validate(Path(args.path), as_json=args.json)
         if args.command == "explain":
             return _explain(Path(args.path), rule_id=args.rule)
+        if args.command == "generate-ci":
+            return _generate_ci(Path(args.path), force=args.force)
     except ValueError as exc:
         print(f"ContextGuard error: {exc}")
         return 2
@@ -134,6 +141,13 @@ def _explain(root: Path, rule_id: str | None) -> int:
         if index > 1:
             print("\n---\n")
         print(explain_violation(violation))
+    return 0
+
+
+def _generate_ci(root: Path, force: bool) -> int:
+    workflow_path = generate_github_actions_workflow(root, force=force)
+    print("ContextGuard CI workflow generated.")
+    print(f"- {workflow_path}")
     return 0
 
 
