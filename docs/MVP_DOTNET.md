@@ -4,7 +4,7 @@ This document tracks the first version of ContextGuard for .NET / C# repositorie
 
 ## MVP goal
 
-Build a Python CLI that can scan a .NET solution, infer the basic architecture, generate AI-ready project rules, and validate important architecture constraints locally or in CI.
+Build a Python CLI that can scan a .NET solution, infer the basic architecture, generate AI-ready project rules, validate important architecture constraints locally or in CI, and explain detected findings with practical fix guidance.
 
 ## Target users
 
@@ -68,13 +68,21 @@ These rules are now configurable through `.contextguard/config.json`.
 
 ### 5. AI context generation
 
-Status: basic version done
+Status: improved basic version done
 
 The `init` command currently generates:
 
 - `.contextguard/config.json`
 - `.contextguard/context.json`
 - `.ai/rules.md`
+
+The generated AI rules now include:
+
+- Detected projects.
+- Architecture rules.
+- Detected project dependencies.
+- Current findings.
+- Development instructions.
 
 Next steps:
 
@@ -84,26 +92,54 @@ Next steps:
 
 ### 6. Validation command
 
-Status: basic version done
+Status: improved basic version done
 
-The `validate` command returns a non-zero exit code when architecture violations are detected.
+The `validate` command returns a non-zero exit code only when error-level architecture findings are detected.
 
-Next steps:
+Current behavior:
 
-- Add better output formatting.
-- Add rule IDs and severity levels from config.
-- Add warning-only rules.
-
-### 7. CI integration
-
-Status: basic version done
-
-A GitHub Actions workflow currently runs unit tests and a CLI smoke test.
+- Error findings fail validation.
+- Warning findings do not fail validation.
+- Unknown layers are reported as warnings.
 
 Next steps:
 
-- Generate a pipeline template for target repositories.
-- Document how to add `contextguard validate` to a .NET repository pipeline.
+- Add rule IDs and severity levels directly from config.
+- Add more warning-only rules.
+
+### 7. Explain command
+
+Status: basic version done
+
+The `explain` command explains detected findings and specific rules.
+
+Examples:
+
+```bash
+python -m contextguard explain .
+python -m contextguard explain . --rule layer-dependency
+```
+
+### 8. CI integration
+
+Status: basic generator done
+
+ContextGuard can generate a GitHub Actions workflow for target repositories:
+
+```bash
+python -m contextguard generate-ci .
+```
+
+The generated workflow runs:
+
+```bash
+python -m contextguard validate .
+```
+
+Next steps:
+
+- Add Azure Pipelines template support.
+- Allow choosing package source/version for CI installation.
 
 ## What is intentionally out of scope for v1
 
@@ -121,30 +157,34 @@ From the ContextGuard repository:
 ```bash
 python -m pip install -e .
 python -m unittest discover -s tests
-contextguard analyze .
+python -m contextguard analyze .
 ```
 
 Against a real .NET repository:
 
 ```bash
-contextguard analyze /path/to/dotnet-repo
-contextguard analyze /path/to/dotnet-repo --json
-contextguard init /path/to/dotnet-repo
-contextguard validate /path/to/dotnet-repo
+python -m contextguard analyze /path/to/dotnet-repo --show-deps
+python -m contextguard analyze /path/to/dotnet-repo --json
+python -m contextguard init /path/to/dotnet-repo
+python -m contextguard validate /path/to/dotnet-repo
+python -m contextguard explain /path/to/dotnet-repo
+python -m contextguard generate-ci /path/to/dotnet-repo
 ```
 
 Expected behavior:
 
-- `analyze` prints the detected solutions, projects, dependencies, and violations.
+- `analyze` prints the detected solutions, projects, dependencies, errors, warnings, and findings.
 - `init` creates ContextGuard output files.
-- `validate` exits with code `0` when there are no violations.
-- `validate` exits with code `1` when invalid layer dependencies are found.
+- `validate` exits with code `0` when there are no error-level findings.
+- `validate` exits with code `1` when invalid error-level dependencies are found.
 - `validate` exits with code `2` when the config cannot be read.
+- `explain` prints why a finding matters and how to fix it.
+- `generate-ci` writes `.github/workflows/contextguard.yml`.
 
 ## Current next priorities
 
-1. Add severity levels to rules.
-2. Add warning-only rules.
-3. Add source-pattern rules, for example forbidding `DbContext` inside controllers.
-4. Generate a CI pipeline template for target .NET repositories.
-5. Improve `.ai/rules.md` with richer detected conventions.
+1. Add severity levels directly to config rules.
+2. Add source-pattern rules, for example forbidding `DbContext` inside controllers.
+3. Generate Azure Pipelines template support.
+4. Improve `.ai/rules.md` with richer detected conventions.
+5. Add tests for CLI command behavior.
