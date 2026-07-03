@@ -20,7 +20,7 @@ DEFAULT_FORBIDDEN_DEPENDENCIES: dict[str, list[str]] = {
     "webapi": ["tests"],
 }
 
-DEFAULT_FORBIDDEN_SOURCE_PATTERNS: list[dict[str, str]] = [
+DEFAULT_FORBIDDEN_SOURCE_PATTERNS: list[dict[str, Any]] = [
     {
         "layer": "domain",
         "pattern": "Microsoft.EntityFrameworkCore",
@@ -57,6 +57,10 @@ class SourcePatternRule:
     message: str
     rule_id: str = "forbidden-source-pattern"
     severity: str = "error"
+    match_type: str = "contains"
+    include: list[str] = field(default_factory=lambda: ["**/*.cs"])
+    exclude: list[str] = field(default_factory=list)
+    max_findings_per_project: int | None = None
 
     def normalized(self) -> "SourcePatternRule":
         return SourcePatternRule(
@@ -65,6 +69,10 @@ class SourcePatternRule:
             message=self.message,
             rule_id=self.rule_id,
             severity=self.severity.lower(),
+            match_type=self.match_type.lower(),
+            include=list(self.include),
+            exclude=list(self.exclude),
+            max_findings_per_project=self.max_findings_per_project,
         )
 
 
@@ -162,12 +170,23 @@ def _source_pattern_rule_from_dict(value: Any) -> SourcePatternRule:
     message = value.get("message")
     rule_id = value.get("rule_id", "forbidden-source-pattern")
     severity = value.get("severity", "error")
+    match_type = value.get("match_type", "contains")
+    include = _read_string_list(value.get("include"), ["**/*.cs"], "include")
+    exclude = _read_string_list(value.get("exclude"), [], "exclude")
+    max_findings_per_project = value.get("max_findings_per_project")
 
-    if not all(isinstance(item, str) and item.strip() for item in (layer, pattern, message, rule_id, severity)):
-        raise ValueError("Source pattern rules require string values for layer, pattern, message, rule_id, and severity.")
+    if not all(isinstance(item, str) and item.strip() for item in (layer, pattern, message, rule_id, severity, match_type)):
+        raise ValueError("Source pattern rules require string values for layer, pattern, message, rule_id, severity, and match_type.")
 
     if severity.lower() not in {"error", "warning"}:
         raise ValueError("Source pattern rule severity must be either `error` or `warning`.")
+
+    if match_type.lower() not in {"contains", "regex"}:
+        raise ValueError("Source pattern rule match_type must be either `contains` or `regex`.")
+
+    if max_findings_per_project is not None:
+        if not isinstance(max_findings_per_project, int) or max_findings_per_project < 1:
+            raise ValueError("Source pattern rule max_findings_per_project must be a positive integer.")
 
     return SourcePatternRule(
         layer=layer.lower(),
@@ -175,4 +194,16 @@ def _source_pattern_rule_from_dict(value: Any) -> SourcePatternRule:
         message=message,
         rule_id=rule_id,
         severity=severity.lower(),
+        match_type=match_type.lower(),
+        include=include,
+        exclude=exclude,
+        max_findings_per_project=max_findings_per_project,
     )
+
+
+def _read_string_list(value: Any, fallback: list[str], field_name: str) -> list[str]:
+    if value is None:
+        return list(fallback)
+    if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+        raise ValueError(f"Source pattern rule `{field_name}` must be a list of strings.")
+    return list(value)
