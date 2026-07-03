@@ -25,6 +25,8 @@ The first supported rules include:
 - Inferring common layers such as Domain, Application, Infrastructure, WebApi, and Tests.
 - Detecting invalid layer dependencies.
 - Scanning `.cs` files for forbidden source patterns.
+- Filtering source pattern rules by include/exclude path patterns.
+- Limiting noisy legacy findings with `max_findings_per_project`.
 - Explaining detected findings with practical fix guidance.
 - Generating AI-ready rule files.
 - Generating a GitHub Actions workflow for validation.
@@ -160,8 +162,19 @@ Example config:
     {
       "layer": "application",
       "pattern": "Microsoft.EntityFrameworkCore",
+      "severity": "warning",
+      "match_type": "contains",
+      "include": ["**/*.cs"],
+      "exclude": ["**/Generated/**", "**/*.g.cs"],
+      "max_findings_per_project": 5,
+      "message": "Application currently uses EF Core. Prefer abstractions or move data access to Infrastructure over time."
+    },
+    {
+      "layer": "application",
+      "pattern": "using\\s+Grpc\\.Client",
       "severity": "error",
-      "message": "Application projects must not use Entity Framework Core directly."
+      "match_type": "regex",
+      "message": "Application must not use concrete gRPC clients. Define an abstraction and implement it in Infrastructure."
     },
     {
       "layer": "webapi",
