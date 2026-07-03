@@ -17,7 +17,7 @@ ContextGuard will analyze a repository and generate:
 
 The first version focuses on .NET / C# projects, especially Clean Architecture style solutions.
 
-The first supported rules will include:
+The first supported rules include:
 
 - Detecting projects inside a `.sln` or folder.
 - Reading `.csproj` references and package references.
@@ -25,20 +25,54 @@ The first supported rules will include:
 - Detecting invalid layer dependencies.
 - Generating AI-ready rule files.
 
+## Install locally
+
+```bash
+git clone https://github.com/smael-aftersearch/contextguard.git
+cd contextguard
+python -m pip install -e .
+```
+
+## Usage
+
+Analyze a repository:
+
+```bash
+contextguard analyze /path/to/repo
+```
+
+Print the full report as JSON:
+
+```bash
+contextguard analyze /path/to/repo --json
+```
+
+Generate initial ContextGuard files in a repository:
+
+```bash
+contextguard init /path/to/repo
+```
+
+Validate architecture rules:
+
+```bash
+contextguard validate /path/to/repo
+```
+
+## Generated files
+
+The `init` command currently generates:
+
+```text
+.contextguard/context.json
+.ai/rules.md
+```
+
 ## Product vision
 
 ContextGuard should become a lightweight governance layer for AI-assisted development.
 
 Instead of asking an AI agent to read the entire repository every time, ContextGuard gives it a compact, accurate, and enforceable project contract.
-
-## Planned CLI
-
-```bash
-contextguard analyze
-contextguard init
-contextguard validate
-contextguard generate
-```
 
 ## Current status
 
