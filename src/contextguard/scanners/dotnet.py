@@ -29,6 +29,18 @@ def scan_dotnet(root: Path, config: ContextGuardConfig | None = None) -> ScanRes
     violations: list[ViolationInfo] = []
 
     for project in projects:
+        if project.layer == "unknown":
+            violations.append(
+                ViolationInfo(
+                    rule_id="unknown-project-layer",
+                    source=project.name,
+                    target=project.name,
+                    severity="warning",
+                    message=f"{project.name} could not be mapped to a known layer.",
+                )
+            )
+
+    for project in projects:
         project_dir = (root / project.path).parent
         for reference in project.project_references:
             target = _resolve_reference(reference, project_dir, root, project_by_path, project_by_name)
