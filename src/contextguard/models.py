@@ -44,6 +44,18 @@ class ScanResult:
         return asdict(self)
 
     @property
+    def error_count(self) -> int:
+        return len([item for item in self.violations if item.severity == "error"])
+
+    @property
+    def warning_count(self) -> int:
+        return len([item for item in self.violations if item.severity == "warning"])
+
+    @property
+    def has_errors(self) -> bool:
+        return self.error_count > 0
+
+    @property
     def has_violations(self) -> bool:
         return bool(self.violations)
 
