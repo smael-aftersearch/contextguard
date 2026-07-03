@@ -4,6 +4,7 @@ import re
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+from contextguard.config import ContextGuardConfig, default_config
 from contextguard.models import (
     DependencyInfo,
     ProjectInfo,
@@ -12,29 +13,15 @@ from contextguard.models import (
     normalize_path,
 )
 
-LAYER_ORDER = {
-    "domain": 0,
-    "application": 1,
-    "infrastructure": 2,
-    "webapi": 3,
-    "tests": 4,
-    "unknown": 99,
-}
 
-FORBIDDEN_LAYER_DEPENDENCIES = {
-    "domain": {"application", "infrastructure", "webapi", "tests"},
-    "application": {"infrastructure", "webapi", "tests"},
-    "infrastructure": {"webapi", "tests"},
-    "webapi": {"tests"},
-}
-
-
-def scan_dotnet(root: Path) -> ScanResult:
+def scan_dotnet(root: Path, config: ContextGuardConfig | None = None) -> ScanResult:
     root = root.resolve()
+    config = config or default_config()
+
     solution_files = sorted(root.rglob("*.sln"))
     project_paths = _discover_project_paths(root, solution_files)
 
-    projects = [_read_project(path, root) for path in project_paths]
+    projects = [_read_project(path, root, config) for path in project_paths]
     project_by_path = {Path(project.path).as_posix().lower(): project for project in projects}
     project_by_name = {project.name.lower(): project for project in projects}
 
@@ -56,7 +43,7 @@ def scan_dotnet(root: Path) -> ScanResult:
             )
             dependencies.append(dependency)
 
-            if _is_forbidden(project.layer, target_layer):
+            if _is_forbidden(project.layer, target_layer, config):
                 violations.append(
                     ViolationInfo(
                         rule_id="layer-dependency",
@@ -109,7 +96,7 @@ def _read_solution_projects(solution: Path, root: Path) -> set[Path]:
     return projects
 
 
-def _read_project(path: Path, root: Path) -> ProjectInfo:
+def _read_project(path: Path, root: Path, config: ContextGuardConfig) -> ProjectInfo:
     package_references: list[str] = []
     project_references: list[str] = []
     target_frameworks: list[str] = []
@@ -144,26 +131,20 @@ def _read_project(path: Path, root: Path) -> ProjectInfo:
     return ProjectInfo(
         name=name,
         path=normalize_path(path, root),
-        layer=infer_layer(name, path),
+        layer=infer_layer(name, path, config),
         target_frameworks=sorted(set(target_frameworks)),
         package_references=sorted(set(package_references)),
         project_references=sorted(set(project_references)),
     )
 
 
-def infer_layer(project_name: str, path: Path) -> str:
+def infer_layer(project_name: str, path: Path, config: ContextGuardConfig | None = None) -> str:
+    config = config or default_config()
     value = f"{project_name} {path.as_posix()}".lower()
 
-    if any(token in value for token in ("test", "tests", "spec")):
-        return "tests"
-    if "domain" in value:
-        return "domain"
-    if "application" in value:
-        return "application"
-    if any(token in value for token in ("infrastructure", ".infra", "/infra")):
-        return "infrastructure"
-    if any(token in value for token in ("webapi", "endpoint", "endpoints", ".api", "/api")):
-        return "webapi"
+    for layer, patterns in config.layer_patterns.items():
+        if any(pattern in value for pattern in patterns):
+            return layer
 
     return "unknown"
 
@@ -184,8 +165,8 @@ def _resolve_reference(
     return project_by_name.get(Path(reference).stem.lower())
 
 
-def _is_forbidden(source_layer: str, target_layer: str) -> bool:
-    return target_layer in FORBIDDEN_LAYER_DEPENDENCIES.get(source_layer, set())
+def _is_forbidden(source_layer: str, target_layer: str, config: ContextGuardConfig) -> bool:
+    return target_layer in set(config.forbidden_dependencies.get(source_layer, []))
 
 
 def _strip_namespace(tag: str) -> str:
