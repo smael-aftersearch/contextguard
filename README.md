@@ -26,6 +26,7 @@ The first supported rules include:
 - Detecting invalid layer dependencies.
 - Explaining detected findings with practical fix guidance.
 - Generating AI-ready rule files.
+- Generating a GitHub Actions workflow for validation.
 - Reading repository-specific rules from `.contextguard/config.json`.
 
 ## Install locally
@@ -103,6 +104,12 @@ Explain a specific rule:
 python -m contextguard explain . --rule layer-dependency
 ```
 
+Generate a GitHub Actions workflow in the target repository:
+
+```bash
+python -m contextguard generate-ci /path/to/repo
+```
+
 ## Generated files
 
 The `init` command currently generates:
@@ -111,6 +118,12 @@ The `init` command currently generates:
 .contextguard/config.json
 .contextguard/context.json
 .ai/rules.md
+```
+
+The `generate-ci` command generates:
+
+```text
+.github/workflows/contextguard.yml
 ```
 
 The generated `.ai/rules.md` includes detected projects, architecture rules, detected dependencies, current findings, and development instructions for AI-assisted coding.
@@ -159,6 +172,7 @@ python -m contextguard analyze D:/Source/MyDotnetRepo --show-deps
 python -m contextguard init D:/Source/MyDotnetRepo
 python -m contextguard validate D:/Source/MyDotnetRepo
 python -m contextguard explain D:/Source/MyDotnetRepo
+python -m contextguard generate-ci D:/Source/MyDotnetRepo
 ```
 
 Expected validation behavior:
