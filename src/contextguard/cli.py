@@ -19,6 +19,7 @@ def main(argv: list[str] | None = None) -> int:
     analyze_parser = subparsers.add_parser("analyze", help="Analyze a codebase and print a report.")
     analyze_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
     analyze_parser.add_argument("--json", action="store_true", help="Print the full report as JSON.")
+    analyze_parser.add_argument("--show-deps", action="store_true", help="Print project references in the text report.")
 
     init_parser = subparsers.add_parser("init", help="Generate initial ContextGuard files.")
     init_parser.add_argument("path", nargs="?", default=".", help="Repository path. Defaults to current directory.")
@@ -32,7 +33,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         if args.command == "analyze":
-            return _analyze(Path(args.path), as_json=args.json)
+            return _analyze(Path(args.path), as_json=args.json, show_deps=args.show_deps)
         if args.command == "init":
             return _init(Path(args.path), force=args.force)
         if args.command == "validate":
@@ -45,13 +46,13 @@ def main(argv: list[str] | None = None) -> int:
     return 1
 
 
-def _analyze(root: Path, as_json: bool) -> int:
+def _analyze(root: Path, as_json: bool, show_deps: bool) -> int:
     config = load_config(root)
     result = scan_dotnet(root, config=config)
     if as_json:
         print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))
     else:
-        _print_summary(result.to_dict())
+        _print_summary(result.to_dict(), show_deps=show_deps)
     return 0
 
 
@@ -107,7 +108,7 @@ def _validate(root: Path, as_json: bool) -> int:
     return 1 if result.has_errors else 0
 
 
-def _print_summary(report: dict) -> None:
+def _print_summary(report: dict, show_deps: bool = False) -> None:
     error_count = len([item for item in report["violations"] if item["severity"] == "error"])
     warning_count = len([item for item in report["violations"] if item["severity"] == "warning"])
 
@@ -125,6 +126,14 @@ def _print_summary(report: dict) -> None:
         for project in report["projects"]:
             frameworks = ", ".join(project["target_frameworks"]) or "unknown framework"
             print(f"- {project['name']} [{project['layer']}] ({frameworks})")
+
+    if show_deps and report["dependencies"]:
+        print("\nDependencies:")
+        for dependency in report["dependencies"]:
+            print(
+                f"- {dependency['source']} [{dependency['source_layer']}] -> "
+                f"{dependency['target']} [{dependency['target_layer']}]"
+            )
 
     if report["violations"]:
         print("\nFindings:")
