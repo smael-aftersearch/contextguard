@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "contextguard"
+version = "0.1.0"
+description = "Generate AI-ready codebase context and enforce architecture rules."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "ContextGuard Contributors" }]
+license = { text = "MIT" }
+keywords = ["ai", "architecture", "codebase", "governance", "dotnet", "clean-architecture"]
+classifiers = [
+    "Development Status :: 2 - Pre-Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = []
+
+[project.scripts]
+contextguard = "contextguard.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
