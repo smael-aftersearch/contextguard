@@ -24,6 +24,7 @@ The first supported rules include:
 - Reading `.csproj` references and package references.
 - Inferring common layers such as Domain, Application, Infrastructure, WebApi, and Tests.
 - Detecting invalid layer dependencies.
+- Scanning `.cs` files for forbidden source patterns.
 - Explaining detected findings with practical fix guidance.
 - Generating AI-ready rule files.
 - Generating a GitHub Actions workflow for validation.
@@ -102,6 +103,7 @@ Explain a specific rule:
 
 ```bash
 python -m contextguard explain . --rule layer-dependency
+python -m contextguard explain . --rule forbidden-source-pattern
 ```
 
 Generate a GitHub Actions workflow in the target repository:
@@ -153,9 +155,25 @@ Example config:
     "application": ["infrastructure", "webapi", "tests"],
     "infrastructure": ["webapi", "tests"],
     "webapi": ["tests"]
-  }
+  },
+  "forbidden_source_patterns": [
+    {
+      "layer": "application",
+      "pattern": "Microsoft.EntityFrameworkCore",
+      "severity": "error",
+      "message": "Application projects must not use Entity Framework Core directly."
+    },
+    {
+      "layer": "webapi",
+      "pattern": "DbContext",
+      "severity": "warning",
+      "message": "WebApi projects should avoid direct DbContext usage. Prefer Application services."
+    }
+  ]
 }
 ```
+
+See `docs/SOURCE_PATTERN_RULES.md` for more details.
 
 ## Test ContextGuard itself
 
